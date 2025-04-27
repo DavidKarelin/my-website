@@ -7,6 +7,7 @@
 
 body {
   overflow-x: hidden; /* Prevent horizontal scrolling */
+  background-color: rgba(40, 36, 103, 1); /* New background color for the entire page */
 }
 
 .banner {
@@ -16,11 +17,12 @@ body {
 
 #bannerimage {
   width: 100%;
-  background-image: url("../assets/images/image1.jpeg");
+  /* Replaced background-image with gradient */
+  background: #352a9b;
+  background: #1c1c1c;
   height: 100px;
-  background-color: purple;
   background-position: center;
-  background-size: cover; /* This helps ensure the image covers the area properly */
+  background-size: cover; /* This helps ensure the gradient fills the area properly */
 }
 
 nav {
@@ -38,7 +40,7 @@ nav {
 nav button {
   background: none;
   border: none;
-  color: #f5f0d0; /* Off-yellow color */
+  color: rgba(195, 167, 0, 1); /* Off-yellow color */
   font-size: 32px;
   cursor: pointer;
   transition: all 0.3s ease;
