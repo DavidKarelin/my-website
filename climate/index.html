@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Climate-Change Snapshot</title>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+    :root{
+        --purple:#5b2c82;
+        --green:#2ecc71;
+        --white:#ffffff;
+        --box-bg:rgba(255,255,255,0.12);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:var(--white);}
+    body{background:var(--purple);height:100vh;overflow:hidden;}
+
+    /* banner */
+    #timerBanner{
+        position:fixed;top:0;left:0;width:100%;
+        text-align:center;padding:12px;font-size:1.1rem;
+        background:rgba(0,0,0,0.25);backdrop-filter:blur(4px);
+    }
+
+    /* run button */
+    #runBtn{
+        position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+        width:120px;height:120px;border:none;border-radius:50%;
+        background:var(--green);cursor:pointer;transition:opacity .3s;
+    }
+    #runBtn::before{
+        content:"";position:absolute;left:50%;top:50%;transform:translate(-40%,-50%);
+        width:0;height:0;border-style:solid;
+        border-width:24px 0 24px 40px;border-color:transparent transparent transparent var(--white);
+    }
+
+    /* metric boxes */
+    .metric-box{
+        position:absolute;width:200px;height:200px;
+        background:var(--box-bg);border:2px solid var(--white);
+        display:flex;flex-direction:column;justify-content:center;align-items:center;
+        text-align:center;font-size:1rem;line-height:1.4;
+    }
+    #metric1{top:75px;left:20px;}
+    #metric2{top:75px;right:20px;}
+    #metric3{bottom:20px;left:20px;}
+    #metric4{bottom:20px;right:20px;}
+    h3{font-size:1.05rem;margin-bottom:4px;}
+
+    /* chart canvases */
+    .chart-canvas{
+        position:absolute;width:440px;height:320px;display:none;
+    }
+    #chartCo2 {top:75px;left:240px;}            /* right of metric1 */
+    #chartTemp{top:75px;right:240px;}           /* left of metric2 */
+    #chartIce {bottom:20px;left:240px;}         /* right of metric3 */
+    #chartSea {bottom:20px;right:240px;}        /* left of metric4 */
+</style>
+</head>
+<body>
+
+<div id="timerBanner"></div>
+
+<button id="runBtn" aria-label="Run climate update"></button>
+
+<!-- four canvases -->
+<canvas id="chartCo2"  class="chart-canvas"></canvas>
+<canvas id="chartTemp" class="chart-canvas"></canvas>
+<canvas id="chartIce"  class="chart-canvas"></canvas>
+<canvas id="chartSea"  class="chart-canvas"></canvas>
+
+<!-- metric boxes -->
+<div id="metric1" class="metric-box"><h3>CO₂</h3><p>—</p></div>
+<div id="metric2" class="metric-box"><h3>Temperature (Mean)</h3><p>—</p></div>
+<div id="metric3" class="metric-box"><h3>Temperature (High)</h3><p>—</p></div>
+<div id="metric4" class="metric-box"><h3>Sea Level</h3><p>—</p></div>
+
+<script>
+/* ---------- banner timer ---------- */
+const INCEPTION = new Date('2025-05-29T00:00:00-07:00');
+const timerBanner=document.getElementById('timerBanner');
+function updateTimer(){
+    const now=new Date();let diff=Math.floor((now-INCEPTION)/1000);
+    const y=Math.floor(diff/31536000);diff%=31536000;
+    const m=Math.floor(diff/2592000); diff%=2592000;
+    const w=Math.floor(diff/604800);  diff%=604800;
+    const d=Math.floor(diff/86400);   diff%=86400;
+    const h=Math.floor(diff/3600);    diff%=3600;
+    const i=Math.floor(diff/60);      diff%=60;
+    const s=diff;
+    timerBanner.textContent=
+      `${y} years ${m} months ${w} weeks ${d} days ${h} hours ${i} minutes ${s} seconds since website inception`;
+}
+updateTimer();setInterval(updateTimer,1000);
+
+/* ---------- baseline numbers ---------- */
+const BASE={co2:485.0,temp:14.9,ice:5.5,sea:0};
+
+/* ---------- charts holder ---------- */
+const chartRefs={};          // store Chart.js instances by id
+
+function drawChart(id,label,base,latest){
+    const lo = Math.round(0.95 * Math.min(base, latest));  
+    const hi = Math.round(1.05 * Math.max(base, latest));
+    const canvas=document.getElementById(id);
+    if(chartRefs[id]){chartRefs[id].destroy();}
+    canvas.style.display='block';
+    chartRefs[id]=new Chart(canvas,{
+        type:'bar',
+        data:{
+            labels:[label],
+            datasets:[
+                {label:'Baseline',data:[base],
+                 backgroundColor:'rgba(255,255,255,0.4)',
+                 borderColor:'rgba(255,255,255,0.9)',borderWidth:1},
+                {label:'Latest',data:[latest],
+                 backgroundColor:'rgba(46,204,113,0.7)',
+                 borderColor:'rgba(46,204,113,1)',borderWidth:1}
+            ]
+        },
+        options:{
+            responsive:false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: lo,          // <-- 2. apply lower bound
+                    max: hi,          // <-- 3. apply upper bound
+                    ticks: { color: '#fff' },
+                    grid:  { color: 'rgba(255,255,255,0.25)' }
+                },
+                x: {
+                    ticks: { color: '#fff' },
+                    grid: { display: false }
+                }
+            },
+            plugins:{legend:{labels:{color:'#fff'}}}
+        }
+    });
+}
+
+/* ---------- fetch + display ---------- */
+const boxes={
+    co2: document.getElementById('metric1'),
+    temp:document.getElementById('metric2'),
+    ice: document.getElementById('metric3'),
+    sea: document.getElementById('metric4')
+};
+
+async function fetchMetrics(){
+    runBtn.style.opacity='0';setTimeout(()=>runBtn.style.display='none',300);
+
+    /* CO₂ */
+    boxes.co2.innerHTML='<h3>CO₂</h3><p>Loading…</p>';
+    try{
+        const r=await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=32.8752631656&longitude=-117.236132389&hourly=carbon_dioxide');
+        const d=await r.json();
+        const latest=Math.max(...d.hourly.carbon_dioxide);
+        boxes.co2.innerHTML=`<h3>CO₂ (ppm)</h3><p>${latest.toFixed(1)}</p>`;
+        drawChart('chartCo2','CO₂ (ppm)',BASE.co2,latest);
+    }catch{boxes.co2.innerHTML='<h3>CO₂</h3><p>error</p>';}
+
+    /* Temperature */
+    boxes.temp.innerHTML='<h3>Temperature</h3><p>Loading…</p>';
+    try{
+        const r=await fetch('https://climate-api.open-meteo.com/v1/climate?latitude=0&longitude=0&start=2024-01&end=2024-12&models=ERA5');
+        const d=await r.json();const latest=d.temperature_2m_mean?.[0];
+        if(Number.isFinite(latest)){
+            boxes.temp.innerHTML=`<h3>Temp (°C)</h3><p>${latest.toFixed(2)}</p>`;
+            drawChart('chartTemp','Temp (°C)',BASE.temp,latest);
+        }else{throw'bad';}
+    }catch{boxes.temp.innerHTML='<h3>Temperature</h3><p>error</p>';}
+
+    /* Sea-ice and sea-level placeholders (no open CORS APIs yet) */
+}
+document.getElementById('runBtn').addEventListener('click',fetchMetrics);
+</script>
+</body>
+</html>
