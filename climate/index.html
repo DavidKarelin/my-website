@@ -30,6 +30,7 @@
         width:120px;height:120px;border:none;border-radius:50%;
         background:var(--green);cursor:pointer;transition:opacity .3s;
     }
+    
     #runBtn::before{
         content:"";position:absolute;left:50%;top:50%;transform:translate(-40%,-50%);
         width:0;height:0;border-style:solid;
@@ -44,6 +45,31 @@
     #chartTempMean{top:50px;right:20px;}
     #chartCo2 {bottom:20px;left:20px;}
     #chartSea {bottom:20px;right:20px;}
+
+    #projectTextBox {
+    display: none;  /* <-- hide initially */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 820px;
+    height: 230px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    color: var(--white);
+    backdrop-filter: blur(8px);
+    font-size: 1rem;
+    z-index: 5;
+    pointer-events: none; /* prevents it from blocking clicks */
+}
+#projectTextBox h2 {
+    margin-bottom: 10px;
+    font-size: 1.4rem;
+}
+
 </style>
 </head>
 <body>
@@ -51,6 +77,18 @@
 <div id="timerBanner"></div>
 
 <button id="runBtn" aria-label="Run climate update"></button>
+
+<div id="projectTextBox">
+    <h2>About This Project</h2>
+    <p>
+        This climate artifact was developed by David Karelin. It uses APIs from Open-meteo and the NOAA to get current climate data and compare it to historical climate data, based in 2025.
+        Baseline values are either based on current averages for the data at the time of project completion or
+        gathered from APIs. You can see how long this project has been in operation for at the top banner. All values are calculated for La Jolla, San Diego. 
+        Temperature data is collected with Open-meteo's archival weather API, atmospheric CO2 data is collected with an Open-meteo forcecast model (CAMS), and sea level data is collected with the NOAA 
+        CO-OPS API, collecting data from the La Jolla station. All baseline values are based in 2025, except for while in 2025, which uses 2024 as its baseline.  
+        You can hover over a bar to see its value. 
+    </p>
+</div>
 
 <!-- four canvases -->
 <canvas id="chartCo2"  class="chart-canvas"></canvas>
@@ -80,8 +118,8 @@ updateTimer();setInterval(updateTimer,1000);
 const chartRefs={};          // store Chart.js instances by id
 
 function drawChart(id,label,base,latest){
-    const lo = Math.round(0.90 * Math.min(base, latest));  
-    const hi = Math.round(1.10 * Math.max(base, latest));
+    const lo = Math.round(0.95 * Math.min(base, latest));  
+    const hi = Math.round(1.05 * Math.max(base, latest));
     const canvas=document.getElementById(id);
     if(chartRefs[id]){chartRefs[id].destroy();}
     canvas.style.display='block';
@@ -91,11 +129,11 @@ function drawChart(id,label,base,latest){
             labels:[label],
             datasets:[
                 {label:'Baseline',data:[base],
-                 backgroundColor:'rgba(255,255,255,0.4)',
+                 backgroundColor:'rgba(25,255,25,0.7)',
                  borderColor:'rgba(255,255,255,0.9)',borderWidth:1},
                 {label:'Latest',data:[latest],
-                 backgroundColor:'rgba(46,204,113,0.7)',
-                 borderColor:'rgba(46,204,113,1)',borderWidth:1}
+                 backgroundColor:'rgba(246,24,13,0.7)',
+                 borderColor:'rgba(246,204,113,1)',borderWidth:1}
             ]
         },
         options:{
@@ -123,6 +161,7 @@ function drawChart(id,label,base,latest){
 
 /* ---------- fetch + display ---------- */
 async function fetchMetrics(){
+    document.getElementById('projectTextBox').style.display = 'block';
     runBtn.style.opacity='0';setTimeout(()=>runBtn.style.display='none',300);
 
       /* ----- dynamic dates ----- */
@@ -153,9 +192,9 @@ async function fetchMetrics(){
     try{
         const rNow = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=carbon_dioxide&start_date=${startNow}&end_date=${endNow}`);
         const pNow = await rNow.json();
-        const baseline = 429.5;
+        const baseline = 460;
         const latest = avg(pNow.hourly.carbon_dioxide);
-        drawChart('chartCo2','CO₂ (ppm)',baseline,latest);
+        drawChart('chartCo2','CO₂ (ppm) (Simulated)',baseline,latest);
     }catch{console.error('CO₂ fetch error');}
 
     /* Temperature */
