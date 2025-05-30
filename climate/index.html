@@ -163,18 +163,20 @@ async function fetchMetrics(){
     }catch{boxes.co2.innerHTML='<h3>CO₂</h3><p>error</p>';}
 
     /* Temperature */
-    boxes.temp.innerHTML='<h3>Temperature</h3><p>Loading…</p>';
+    boxes.temp.innerHTML='<h3>Temperature (Mean)</h3><p>Loading…</p>';
     try{
-        const r=await fetch('https://climate-api.open-meteo.com/v1/climate?latitude=0&longitude=0&start=2024-01&end=2024-12&models=ERA5');
-        const d=await r.json();const latest=d.temperature_2m_mean?.[0];
-        if(Number.isFinite(latest)){
-            boxes.temp.innerHTML=`<h3>Temp (°C)</h3><p>${latest.toFixed(2)}</p>`;
-            drawChart('chartTemp','Temp (°C)',BASE.temp,latest);
-        }else{throw'bad';}
-    }catch{boxes.temp.innerHTML='<h3>Temperature</h3><p>error</p>';}
+        const r=await fetch('https://archive-api.open-meteo.com/v1/archive?latitude=32.8752631656&longitude=-117.236132389&start_date=2025-01-01&end_date=2025-05-24&daily=temperature_2m_mean&timezone=America%2FLos_Angeles');
+        const d=await r.json();
+        const latest = average(d.daily?.temperature_2m_mean || []);
+        boxes.temp.innerHTML=`<h3>Temp (°C)</h3><p>${latest.toFixed(2)}</p>`;
+        drawChart('chartTemp','Temp (°C)',BASE.temp,latest);
+    }catch{boxes.temp.innerHTML='<h3>Temperature (Mean)</h3><p>error</p>';}
 
     /* Sea-ice and sea-level placeholders (no open CORS APIs yet) */
 }
+
+const average = array => array.reduce((a, b) => a + b) / array.length;
+
 document.getElementById('runBtn').addEventListener('click',fetchMetrics);
 </script>
 </body>
