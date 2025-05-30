@@ -76,15 +76,12 @@ function updateTimer(){
 }
 updateTimer();setInterval(updateTimer,1000);
 
-/* ---------- baseline numbers ---------- */
-const BASE={co2:485.0,temp:14.9,ice:5.5,sea:0.1};
-
 /* ---------- charts holder ---------- */
 const chartRefs={};          // store Chart.js instances by id
 
 function drawChart(id,label,base,latest){
-    const lo = Math.round(0.95 * Math.min(base, latest));  
-    const hi = Math.round(1.05 * Math.max(base, latest));
+    const lo = Math.round(0.90 * Math.min(base, latest));  
+    const hi = Math.round(1.10 * Math.max(base, latest));
     const canvas=document.getElementById(id);
     if(chartRefs[id]){chartRefs[id].destroy();}
     canvas.style.display='block';
@@ -128,43 +125,78 @@ function drawChart(id,label,base,latest){
 async function fetchMetrics(){
     runBtn.style.opacity='0';setTimeout(()=>runBtn.style.display='none',300);
 
+      /* ----- dynamic dates ----- */
+    const today        = new Date();
+    const oneWeekAgo   = new Date(today);         oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
+
+    const oneMonthAgo = new Date(today);          oneMonthAgo.setDate(oneMonthAgo.getDate() - 31);
+    const thisYear     = today.getFullYear();     // e.g. 2025, 2026, …
+    const cmpYear      = (thisYear===2025) ? 2024 : 2025;
+
+    const fmt = d => d.toISOString().split('T')[0];
+
+    /* YTD windows */
+    const startNow   = `${thisYear}-01-01`;
+    const endNow     = fmt(oneWeekAgo);
+
+    const endCmpDate = new Date(oneWeekAgo);      endCmpDate.setFullYear(cmpYear);
+    const startCmp   = `${cmpYear}-01-01`;
+    const endCmp     = fmt(endCmpDate);
+
+    /* helpers */
+    const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+    const lat =  '32.8752631656';
+    const lon = '-117.236132389';
+
+
     /* CO₂ */
     try{
-        const r=await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=32.8752631656&longitude=-117.236132389&hourly=carbon_dioxide&start_date=2025-01-01&end_date=2025-05-24');
-        const d=await r.json();
-        const latest=Math.max(...d.hourly.carbon_dioxide);
-        drawChart('chartCo2','CO₂ (ppm) (Simulated)',BASE.co2,latest);
+        const rNow = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=carbon_dioxide&start_date=${startNow}&end_date=${endNow}`);
+        const pNow = await rNow.json();
+        const baseline = 429.5;
+        const latest = avg(pNow.hourly.carbon_dioxide);
+        drawChart('chartCo2','CO₂ (ppm)',baseline,latest);
     }catch{console.error('CO₂ fetch error');}
 
     /* Temperature */
     try{
-        const r=await fetch('https://archive-api.open-meteo.com/v1/archive?latitude=32.8752631656&longitude=-117.236132389&start_date=2025-01-01&end_date=2025-05-24&daily=temperature_2m_mean&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit');
-        const d=await r.json();
-        const latest = average(d.daily?.temperature_2m_mean || []);
-        drawChart('chartTempMean','Temp (°F) (Mean)',BASE.temp,latest);
+        const [rCmp,rNow] = await Promise.all([
+            fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startCmp}&end_date=${endCmp}&daily=temperature_2m_mean&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit`),
+            fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startNow}&end_date=${endNow}&daily=temperature_2m_mean&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit`)
+        ]);
+        const pCmp = await rCmp.json(), pNow = await rNow.json();
+        const baseline = avg(pCmp.daily?.temperature_2m_mean || []);
+        const latest   = avg(pNow.daily?.temperature_2m_mean || []);
+        drawChart('chartTempMean','Temp (°F) Mean',baseline,latest);
     }catch{console.error('Mean temperature fetch error');}
 
     try{
-        const r = await fetch('https://archive-api.open-meteo.com/v1/archive?latitude=32.8752631656&longitude=-117.236132389&start_date=2025-01-01&end_date=2025-05-24&daily=temperature_2m_max&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit');
-        const d = await r.json();
-        const latest = Math.max(...(d.daily?.temperature_2m_max || []));
-        drawChart('chartTempMax', 'Temp (°F) (Max)', BASE.ice, latest);
+        const [rCmp,rNow] = await Promise.all([
+            fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startCmp}&end_date=${endCmp}&daily=temperature_2m_max&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit`),
+            fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startNow}&end_date=${endNow}&daily=temperature_2m_max&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit`)
+        ]);
+        const pCmp = await rCmp.json(), pNow = await rNow.json();
+        const baseline = Math.max(...(pCmp.daily?.temperature_2m_max || []));
+        const latest   = Math.max(...(pNow.daily?.temperature_2m_max || []));
+        drawChart('chartTempMax','Temp (°F) Max',baseline,latest);
     }
     catch{
         console.error('Maximum temperature fetch error');
     }
 
     try{
-        const r = await fetch('https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=monthly_mean&application=web_services&begin_date=20250101&end_date=20250102&datum=MLLW&station=9410230&time_zone=lst_ldt&units=english&format=json');
-        const d = await r.json();
-        const msl = d.data[0].MSL;
-        drawChart('chartSea', 'Sea Level (Feet)', BASE.sea, msl);
+        const mm = String(oneMonthAgo.getMonth()+1).padStart(2,'0');       // last month index
+        const mURL = y => `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=monthly_mean&application=web_services&begin_date=${y}${mm}01&end_date=${y}${mm}02&datum=MLLW&station=9410230&time_zone=lst_ldt&units=english&format=json`;
+
+        const [rCmp,rNow] = await Promise.all([ fetch(mURL(cmpYear)), fetch(mURL(thisYear)) ]);
+        const pCmp = await rCmp.json(), pNow = await rNow.json();
+        const baseline = parseFloat(pCmp.data[0].MSL);
+        const latest   = parseFloat(pNow.data[0].MSL);
+        drawChart('chartSea','Sea-Level (ft)',baseline,latest);
     }
     catch{
         console.error('Sea Level Fetch Failed');
     }
-
-    /* Sea-ice and sea-level placeholders (no open CORS APIs yet) */
 }
 
 const average = array => array.reduce((a, b) => a + b) / array.length;
