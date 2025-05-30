@@ -13,7 +13,6 @@
         --purple:#5b2c82;
         --green:#2ecc71;
         --white:#ffffff;
-        --box-bg:rgba(255,255,255,0.12);
     }
     *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:var(--white);}
     body{background:var(--purple);height:100vh;overflow:hidden;}
@@ -37,27 +36,14 @@
         border-width:24px 0 24px 40px;border-color:transparent transparent transparent var(--white);
     }
 
-    /* metric boxes */
-    .metric-box{
-        position:absolute;width:200px;height:200px;
-        background:var(--box-bg);border:2px solid var(--white);
-        display:flex;flex-direction:column;justify-content:center;align-items:center;
-        text-align:center;font-size:1rem;line-height:1.4;
-    }
-    #metric1{top:75px;left:20px;}
-    #metric2{top:75px;right:20px;}
-    #metric3{bottom:20px;left:20px;}
-    #metric4{bottom:20px;right:20px;}
-    h3{font-size:1.05rem;margin-bottom:4px;}
-
     /* chart canvases */
     .chart-canvas{
-        position:absolute;width:440px;height:320px;display:none;
+        position:absolute;width:600px;height:450px;display:none;
     }
-    #chartCo2 {top:75px;left:240px;}            /* right of metric1 */
-    #chartTemp{top:75px;right:240px;}           /* left of metric2 */
-    #chartIce {bottom:20px;left:240px;}         /* right of metric3 */
-    #chartSea {bottom:20px;right:240px;}        /* left of metric4 */
+    #chartTempMax {top:50px;left:20px;}
+    #chartTempMean{top:50px;right:20px;}
+    #chartCo2 {bottom:20px;left:20px;}
+    #chartSea {bottom:20px;right:20px;}
 </style>
 </head>
 <body>
@@ -68,15 +54,9 @@
 
 <!-- four canvases -->
 <canvas id="chartCo2"  class="chart-canvas"></canvas>
-<canvas id="chartTemp" class="chart-canvas"></canvas>
-<canvas id="chartIce"  class="chart-canvas"></canvas>
+<canvas id="chartTempMean" class="chart-canvas"></canvas>
+<canvas id="chartTempMax"  class="chart-canvas"></canvas>
 <canvas id="chartSea"  class="chart-canvas"></canvas>
-
-<!-- metric boxes -->
-<div id="metric1" class="metric-box"><h3>CO₂</h3><p>—</p></div>
-<div id="metric2" class="metric-box"><h3>Temperature (Mean)</h3><p>—</p></div>
-<div id="metric3" class="metric-box"><h3>Temperature (High)</h3><p>—</p></div>
-<div id="metric4" class="metric-box"><h3>Sea Level</h3><p>—</p></div>
 
 <script>
 /* ---------- banner timer ---------- */
@@ -97,7 +77,7 @@ function updateTimer(){
 updateTimer();setInterval(updateTimer,1000);
 
 /* ---------- baseline numbers ---------- */
-const BASE={co2:485.0,temp:14.9,ice:5.5,sea:0};
+const BASE={co2:485.0,temp:14.9,ice:5.5,sea:0.1};
 
 /* ---------- charts holder ---------- */
 const chartRefs={};          // store Chart.js instances by id
@@ -123,11 +103,15 @@ function drawChart(id,label,base,latest){
         },
         options:{
             responsive:false,
+            plugins:{
+                title:{display:true,text:label,color:'#fff',padding:{top:4,bottom:4}},
+                legend:{labels:{color:'#fff'}}
+            },
             scales: {
                 y: {
                     beginAtZero: false,
-                    min: lo,          // <-- 2. apply lower bound
-                    max: hi,          // <-- 3. apply upper bound
+                    min: lo,
+                    max: hi,
                     ticks: { color: '#fff' },
                     grid:  { color: 'rgba(255,255,255,0.25)' }
                 },
@@ -135,42 +119,50 @@ function drawChart(id,label,base,latest){
                     ticks: { color: '#fff' },
                     grid: { display: false }
                 }
-            },
-            plugins:{legend:{labels:{color:'#fff'}}}
+            }
         }
     });
 }
 
 /* ---------- fetch + display ---------- */
-const boxes={
-    co2: document.getElementById('metric1'),
-    temp:document.getElementById('metric2'),
-    ice: document.getElementById('metric3'),
-    sea: document.getElementById('metric4')
-};
-
 async function fetchMetrics(){
     runBtn.style.opacity='0';setTimeout(()=>runBtn.style.display='none',300);
 
     /* CO₂ */
-    boxes.co2.innerHTML='<h3>CO₂</h3><p>Loading…</p>';
     try{
-        const r=await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=32.8752631656&longitude=-117.236132389&hourly=carbon_dioxide');
+        const r=await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=32.8752631656&longitude=-117.236132389&hourly=carbon_dioxide&start_date=2025-01-01&end_date=2025-05-24');
         const d=await r.json();
         const latest=Math.max(...d.hourly.carbon_dioxide);
-        boxes.co2.innerHTML=`<h3>CO₂ (ppm)</h3><p>${latest.toFixed(1)}</p>`;
-        drawChart('chartCo2','CO₂ (ppm)',BASE.co2,latest);
-    }catch{boxes.co2.innerHTML='<h3>CO₂</h3><p>error</p>';}
+        drawChart('chartCo2','CO₂ (ppm) (Simulated)',BASE.co2,latest);
+    }catch{console.error('CO₂ fetch error');}
 
     /* Temperature */
-    boxes.temp.innerHTML='<h3>Temperature (Mean)</h3><p>Loading…</p>';
     try{
-        const r=await fetch('https://archive-api.open-meteo.com/v1/archive?latitude=32.8752631656&longitude=-117.236132389&start_date=2025-01-01&end_date=2025-05-24&daily=temperature_2m_mean&timezone=America%2FLos_Angeles');
+        const r=await fetch('https://archive-api.open-meteo.com/v1/archive?latitude=32.8752631656&longitude=-117.236132389&start_date=2025-01-01&end_date=2025-05-24&daily=temperature_2m_mean&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit');
         const d=await r.json();
         const latest = average(d.daily?.temperature_2m_mean || []);
-        boxes.temp.innerHTML=`<h3>Temp (°C)</h3><p>${latest.toFixed(2)}</p>`;
-        drawChart('chartTemp','Temp (°C)',BASE.temp,latest);
-    }catch{boxes.temp.innerHTML='<h3>Temperature (Mean)</h3><p>error</p>';}
+        drawChart('chartTempMean','Temp (°F) (Mean)',BASE.temp,latest);
+    }catch{console.error('Mean temperature fetch error');}
+
+    try{
+        const r = await fetch('https://archive-api.open-meteo.com/v1/archive?latitude=32.8752631656&longitude=-117.236132389&start_date=2025-01-01&end_date=2025-05-24&daily=temperature_2m_max&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit');
+        const d = await r.json();
+        const latest = Math.max(...(d.daily?.temperature_2m_max || []));
+        drawChart('chartTempMax', 'Temp (°F) (Max)', BASE.ice, latest);
+    }
+    catch{
+        console.error('Maximum temperature fetch error');
+    }
+
+    try{
+        const r = await fetch('https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=monthly_mean&application=web_services&begin_date=20250101&end_date=20250102&datum=MLLW&station=9410230&time_zone=lst_ldt&units=english&format=json');
+        const d = await r.json();
+        const msl = d.data[0].MSL;
+        drawChart('chartSea', 'Sea Level (Feet)', BASE.sea, msl);
+    }
+    catch{
+        console.error('Sea Level Fetch Failed');
+    }
 
     /* Sea-ice and sea-level placeholders (no open CORS APIs yet) */
 }
