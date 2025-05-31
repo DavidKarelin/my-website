@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Climate-Change Snapshot</title>
+<title>Climate Change Artifact</title>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -86,9 +86,17 @@
     font-size: 1.4rem;
 }
 
+#scaleRoot{
+    position:absolute;
+    width:1728px;            /* width of the page on your 16″ MBP */
+    height:956px;           /* height on your 16″ MBP           */
+    transform-origin:top left;
+}
+
 </style>
 </head>
 <body>
+<div id="scaleRoot">  
 
 <div id="timerBanner"></div>
 
@@ -114,6 +122,7 @@
 <canvas id="chartTempMax"  class="chart-canvas"></canvas>
 <canvas id="chartSea"  class="chart-canvas"></canvas>
 
+</div> 
 <script>
 /* ---------- banner timer ---------- */
 const INCEPTION = new Date('2025-05-29T00:00:00-07:00');
@@ -260,6 +269,25 @@ const average = array => array.reduce((a, b) => a + b) / array.length;
 
 document.getElementById('runBtn')
         .addEventListener('click', fetchMetrics, { once: true });
+
+/* ---------- responsive scale ---------- */
+function scaleSite(){
+    const DESIGN_W = 1728;      // match the CSS numbers above
+    const DESIGN_H = 956;
+
+    const scale = Math.min(
+        window.innerWidth  / DESIGN_W,
+        window.innerHeight / DESIGN_H,
+        1                  // never enlarge, only shrink
+    );
+
+    document.getElementById('scaleRoot')
+            .style.transform = `scale(${scale})`;
+}
+
+scaleSite();                    // initial call
+window.addEventListener('resize', scaleSite);
+
 </script>
 </body>
 </html>
