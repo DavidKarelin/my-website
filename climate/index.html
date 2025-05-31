@@ -136,8 +136,8 @@ updateTimer();setInterval(updateTimer,1000);
 const chartRefs={};          // store Chart.js instances by id
 
 function drawChart(id,label,base,latest){
-    const lo = Math.round(0.95 * Math.min(base, latest));  
-    const hi = Math.round(1.05 * Math.max(base, latest));
+    const lo = Math.round(0.90 * Math.min(base, latest));  
+    const hi = Math.round(1.10 * Math.max(base, latest));
     const canvas=document.getElementById(id);
     if(chartRefs[id]){chartRefs[id].destroy();}
     canvas.style.display='block';
