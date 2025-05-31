@@ -212,7 +212,7 @@ async function fetchMetrics(){
         const pNow = await rNow.json();
         const baseline = 460;
         const latest = avg(pNow.hourly.carbon_dioxide);
-        drawChart('chartCo2','Atmospheric CO₂ (ppm) (Simulated)',baseline,latest);
+        drawChart('chartCo2','Mean Atmospheric CO₂ (ppm) (Simulated), YTD',baseline,latest);
     }catch{console.error('CO₂ fetch error');}
 
     /* Temperature */
@@ -249,7 +249,7 @@ async function fetchMetrics(){
         const pCmp = await rCmp.json(), pNow = await rNow.json();
         const baseline = parseFloat(pCmp.data[0].MSL);
         const latest   = parseFloat(pNow.data[0].MSL);
-        drawChart('chartSea','Sea-Level (ft)',baseline,latest);
+        drawChart('chartSea','Sea-Level (ft), Monthly Mean',baseline,latest);
     }
     catch{
         console.error('Sea Level Fetch Failed');
