@@ -222,7 +222,8 @@ async function fetchMetrics(){
         const baseline = 460;
         const latest = avg(pNow.hourly.carbon_dioxide);
         drawChart('chartCo2','Mean Atmospheric CO₂ (ppm) (Simulated), YTD',baseline,latest);
-    }catch{console.error('CO₂ fetch error');}
+    }catch{showCanvasError('chartCo2', 'Failed to load CO₂ data.');
+}
 
     /* Temperature */
     try{
@@ -234,7 +235,7 @@ async function fetchMetrics(){
         const baseline = avg(pCmp.daily?.temperature_2m_mean || []);
         const latest   = avg(pNow.daily?.temperature_2m_mean || []);
         drawChart('chartTempMean','Mean Temp (°F), YTD',baseline,latest);
-    }catch{console.error('Mean temperature fetch error');}
+    }catch{showCanvasError('chartTempMean', 'Failed to load mean temperature.');}
 
     try{
         const [rCmp,rNow] = await Promise.all([
@@ -247,7 +248,7 @@ async function fetchMetrics(){
         drawChart('chartTempMax','Max Temp (°F), YTD',baseline,latest);
     }
     catch{
-        console.error('Maximum temperature fetch error');
+        showCanvasError('chartTempMax', 'Failed to load max temperature.');
     }
 
     try{
@@ -261,7 +262,7 @@ async function fetchMetrics(){
         drawChart('chartSea','Sea-Level (ft), Monthly Mean',baseline,latest);
     }
     catch{
-        console.error('Sea Level Fetch Failed');
+        showCanvasError('chartSea', 'Failed to load sea level data.');
     }
 }
 
@@ -287,6 +288,21 @@ function scaleSite(){
 
 scaleSite();                    // initial call
 window.addEventListener('resize', scaleSite);
+
+function showCanvasError(id, message) {
+    const canvas = document.getElementById(id);
+    canvas.style.display = 'block'; // ensure it's visible
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // clear anything already there
+
+    // Style and write the error
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+}
+
 
 </script>
 </body>
