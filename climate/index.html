@@ -11,7 +11,7 @@
 <style>
     :root{
         --purple:#5b2c82;
-        --green:#2ecc71;
+        --green:#3a945f;
         --white:#ffffff;
     }
     *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:var(--white);}
@@ -27,14 +27,30 @@
     /* run button */
     #runBtn{
         position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-        width:120px;height:120px;border:none;border-radius:50%;
+        width:200px;height:200px;border:none;border-radius:50%;
         background:var(--green);cursor:pointer;transition:opacity .3s;
+        
     }
     
     #runBtn::before{
         content:"";position:absolute;left:50%;top:50%;transform:translate(-40%,-50%);
         width:0;height:0;border-style:solid;
         border-width:24px 0 24px 40px;border-color:transparent transparent transparent var(--white);
+    }
+
+    /* run button layout + caption */
+    #runBtn{
+        display:flex;            /* vertical stack: arrow then words */
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+    }
+
+    #runBtn .btnText{
+        margin-top:-120px;         /* keeps text clear of the arrow */
+        font-size:1.2rem;
+        line-height:1.2;
+        pointer-events:none;     /* text never intercepts the click */
     }
 
     /* chart canvases */
@@ -76,7 +92,9 @@
 
 <div id="timerBanner"></div>
 
-<button id="runBtn" aria-label="Run climate update"></button>
+<button id="runBtn" aria-label="Run climate update">
+    <span class="btnText"><p>Press&nbsp;to</p>&nbsp;Run&nbsp;Program</span>
+</button>
 
 <div id="projectTextBox">
     <h2>About This Project</h2>
@@ -194,7 +212,7 @@ async function fetchMetrics(){
         const pNow = await rNow.json();
         const baseline = 460;
         const latest = avg(pNow.hourly.carbon_dioxide);
-        drawChart('chartCo2','CO₂ (ppm) (Simulated)',baseline,latest);
+        drawChart('chartCo2','Atmospheric CO₂ (ppm) (Simulated)',baseline,latest);
     }catch{console.error('CO₂ fetch error');}
 
     /* Temperature */
@@ -206,7 +224,7 @@ async function fetchMetrics(){
         const pCmp = await rCmp.json(), pNow = await rNow.json();
         const baseline = avg(pCmp.daily?.temperature_2m_mean || []);
         const latest   = avg(pNow.daily?.temperature_2m_mean || []);
-        drawChart('chartTempMean','Temp (°F) Mean',baseline,latest);
+        drawChart('chartTempMean','Mean Temp (°F), YTD',baseline,latest);
     }catch{console.error('Mean temperature fetch error');}
 
     try{
@@ -217,7 +235,7 @@ async function fetchMetrics(){
         const pCmp = await rCmp.json(), pNow = await rNow.json();
         const baseline = Math.max(...(pCmp.daily?.temperature_2m_max || []));
         const latest   = Math.max(...(pNow.daily?.temperature_2m_max || []));
-        drawChart('chartTempMax','Temp (°F) Max',baseline,latest);
+        drawChart('chartTempMax','Max Temp (°F), YTD',baseline,latest);
     }
     catch{
         console.error('Maximum temperature fetch error');
@@ -240,7 +258,8 @@ async function fetchMetrics(){
 
 const average = array => array.reduce((a, b) => a + b) / array.length;
 
-document.getElementById('runBtn').addEventListener('click',fetchMetrics);
+document.getElementById('runBtn')
+        .addEventListener('click', fetchMetrics, { once: true });
 </script>
 </body>
 </html>
