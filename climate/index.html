@@ -196,6 +196,7 @@ async function fetchMetrics(){
     const oneWeekAgo   = new Date(today);         oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
 
     const oneMonthAgo = new Date(today);          oneMonthAgo.setDate(oneMonthAgo.getDate() - 31);
+    const oneMonthandWeekAgo = new Date(today);   oneMonthandWeekAgo.setDate(oneMonthandWeekAgo.getDate() - 38);
     const thisYear     = today.getFullYear();     // e.g. 2025, 2026, …
     const cmpYear      = (thisYear===2025) ? 2024 : 2025;
 
@@ -252,7 +253,7 @@ async function fetchMetrics(){
     }
 
     try{
-        const mm = String(oneMonthAgo.getMonth()+1).padStart(2,'0');       // last month index
+        const mm = String(oneMonthandWeekAgo.getMonth()+1).padStart(2,'0');       // last month index
         const mURL = y => `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=monthly_mean&application=web_services&begin_date=${y}${mm}01&end_date=${y}${mm}02&datum=MLLW&station=9410230&time_zone=lst_ldt&units=english&format=json`;
 
         const [rCmp,rNow] = await Promise.all([ fetch(mURL(cmpYear)), fetch(mURL(thisYear)) ]);
