@@ -1,310 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Climate Change Artifact</title>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<style>
-    :root{
-        --purple:#5b2c82;
-        --green:#3a945f;
-        --white:#ffffff;
-    }
-    *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:var(--white);}
-    body{background:var(--purple);height:100vh;overflow:hidden;}
-
-    /* banner */
-    #timerBanner{
-        position:fixed;top:0;left:0;width:100%;
-        text-align:center;padding:12px;font-size:1.1rem;
-        background:rgba(0,0,0,0.25);backdrop-filter:blur(4px);
-    }
-
-    /* run button */
-    #runBtn{
-        position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-        width:200px;height:200px;border:none;border-radius:50%;
-        background:var(--green);cursor:pointer;transition:opacity .3s;
-        
-    }
-    
-    #runBtn::before{
-        content:"";position:absolute;left:50%;top:50%;transform:translate(-40%,-50%);
-        width:0;height:0;border-style:solid;
-        border-width:24px 0 24px 40px;border-color:transparent transparent transparent var(--white);
-    }
-
-    /* run button layout + caption */
-    #runBtn{
-        display:flex;            /* vertical stack: arrow then words */
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-    }
-
-    #runBtn .btnText{
-        margin-top:-120px;         /* keeps text clear of the arrow */
-        font-size:1.2rem;
-        line-height:1.2;
-        pointer-events:none;     /* text never intercepts the click */
-    }
-
-    /* chart canvases */
-    .chart-canvas{
-        position:absolute;width:600px;height:450px;display:none;
-    }
-    #chartTempMax {top:50px;left:20px;}
-    #chartTempMean{top:50px;right:20px;}
-    #chartCo2 {bottom:20px;left:20px;}
-    #chartSea {bottom:20px;right:20px;}
-
-    #projectTextBox {
-    display: none;  /* <-- hide initially */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 820px;
-    height: 230px;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 12px;
-    padding: 24px;
-    text-align: center;
-    color: var(--white);
-    backdrop-filter: blur(8px);
-    font-size: 1rem;
-    z-index: 5;
-    pointer-events: none; /* prevents it from blocking clicks */
-}
-#projectTextBox h2 {
-    margin-bottom: 10px;
-    font-size: 1.4rem;
-}
-
-#scaleRoot{
-    position:absolute;
-    width:1728px;            /* width of the page on your 16″ MBP */
-    height:956px;           /* height on your 16″ MBP           */
-    transform-origin:top left;
-}
-
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Climate Change Artifact</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
 </head>
 <body>
-<div id="scaleRoot">  
+    <header class="site-header">
+        <p id="timerBanner">Project started <time datetime="2025-05-29">May 29, 2025</time></p>
+    </header>
 
-<div id="timerBanner"></div>
+    <main>
+        <div class="intro">
+            <h1>Climate Change Artifact</h1>
+            <p>Temperature and sea level in La Jolla, plus global atmospheric CO₂.</p>
+            <button id="runBtn" type="button">Run climate comparison</button>
+            <p id="status" role="status"></p>
+            <noscript><p>Enable JavaScript to load the climate comparisons.</p></noscript>
+        </div>
 
-<button id="runBtn" aria-label="Run climate update">
-    <span class="btnText"><p>Press&nbsp;to</p>&nbsp;Run&nbsp;Program</span>
-</button>
+        <section id="results" aria-label="Climate comparisons" hidden>
+            <article class="metric" id="tempMax">
+                <h2>Highest temperature</h2>
+                <div class="comparison"></div>
+                <a href="https://open-meteo.com/en/docs/historical-weather-api">Open-Meteo · ERA5-Land</a>
+            </article>
+            <article class="metric" id="tempMean">
+                <h2>Mean temperature</h2>
+                <div class="comparison"></div>
+                <a href="https://open-meteo.com/en/docs/historical-weather-api">Open-Meteo · ERA5-Land</a>
+            </article>
+            <article class="metric" id="co2">
+                <h2>Global atmospheric CO₂</h2>
+                <div class="comparison"></div>
+                <a href="https://gml.noaa.gov/ccgg/trends/global.html">NOAA · Global Monitoring Laboratory</a>
+            </article>
+            <article class="metric" id="sea">
+                <h2>Mean sea level</h2>
+                <div class="comparison"></div>
+                <a href="https://tidesandcurrents.noaa.gov/stationhome.html?id=9410230">NOAA · La Jolla tide gauge</a>
+            </article>
+        </section>
 
-<div id="projectTextBox">
-    <h2>About This Project</h2>
-    <p>
-        This climate artifact was developed by David Karelin. It uses APIs from Open-meteo and the NOAA to get current climate data and compare it to historical climate data, based in 2025.
-        Baseline values are either based on current averages for the data at the time of project completion or
-        gathered from APIs. You can see how long this project has been in operation for at the top banner. All values are calculated for La Jolla, San Diego. 
-        Temperature data is collected with Open-meteo's archival weather API, atmospheric CO2 data is collected with an Open-meteo forcecast model (CAMS), and sea level data is collected with the NOAA 
-        CO-OPS API, collecting data from the La Jolla station. All baseline values are based in 2025, except for while in 2025, which uses data from 2024 as its baseline.  
-        You can hover over a bar to see its value. 
-    </p>
-</div>
-
-<!-- four canvases -->
-<canvas id="chartCo2"  class="chart-canvas"></canvas>
-<canvas id="chartTempMean" class="chart-canvas"></canvas>
-<canvas id="chartTempMax"  class="chart-canvas"></canvas>
-<canvas id="chartSea"  class="chart-canvas"></canvas>
-
-</div> 
-<script>
-/* ---------- banner timer ---------- */
-const INCEPTION = new Date('2025-05-29T00:00:00-07:00');
-const timerBanner=document.getElementById('timerBanner');
-function updateTimer(){
-    const now=new Date();let diff=Math.floor((now-INCEPTION)/1000);
-    const y=Math.floor(diff/31536000);diff%=31536000;
-    const m=Math.floor(diff/2592000); diff%=2592000;
-    const w=Math.floor(diff/604800);  diff%=604800;
-    const d=Math.floor(diff/86400);   diff%=86400;
-    const h=Math.floor(diff/3600);    diff%=3600;
-    const i=Math.floor(diff/60);      diff%=60;
-    const s=diff;
-    timerBanner.textContent=
-      `${y} years ${m} months ${w} weeks ${d} days ${h} hours ${i} minutes ${s} seconds since website inception`;
-}
-updateTimer();setInterval(updateTimer,1000);
-
-/* ---------- charts holder ---------- */
-const chartRefs={};          // store Chart.js instances by id
-
-function drawChart(id,label,base,latest){
-    const lo = Math.round(0.90 * Math.min(base, latest));  
-    const hi = Math.round(1.10 * Math.max(base, latest));
-    const canvas=document.getElementById(id);
-    if(chartRefs[id]){chartRefs[id].destroy();}
-    canvas.style.display='block';
-    chartRefs[id]=new Chart(canvas,{
-        type:'bar',
-        data:{
-            labels:[label],
-            datasets:[
-                {label:'Baseline',data:[base],
-                 backgroundColor:'rgba(25,255,25,0.7)',
-                 borderColor:'rgba(255,255,255,0.9)',borderWidth:1},
-                {label:'Latest',data:[latest],
-                 backgroundColor:'rgba(246,24,13,0.7)',
-                 borderColor:'rgba(246,204,113,1)',borderWidth:1}
-            ]
-        },
-        options:{
-            responsive:false,
-            plugins:{
-                title:{display:true,text:label,color:'#fff',padding:{top:4,bottom:4}},
-                legend:{labels:{color:'#fff'}}
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    min: lo,
-                    max: hi,
-                    ticks: { color: '#fff' },
-                    grid:  { color: 'rgba(255,255,255,0.25)' }
-                },
-                x: {
-                    ticks: { color: '#fff' },
-                    grid: { display: false }
-                }
-            }
-        }
-    });
-}
-
-/* ---------- fetch + display ---------- */
-async function fetchMetrics(){
-    document.getElementById('projectTextBox').style.display = 'block';
-    runBtn.style.opacity='0';setTimeout(()=>runBtn.style.display='none',300);
-
-      /* ----- dynamic dates ----- */
-    const today        = new Date();
-    const oneWeekAgo   = new Date(today);         oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
-
-    const oneMonthAgo = new Date(today);          oneMonthAgo.setDate(oneMonthAgo.getDate() - 31);
-    const oneMonthandWeekAgo = new Date(today);   oneMonthandWeekAgo.setDate(oneMonthandWeekAgo.getDate() - 38);
-    const thisYear     = today.getFullYear();     // e.g. 2025, 2026, …
-    const cmpYear      = (thisYear===2025) ? 2024 : 2025;
-
-    const fmt = d => d.toISOString().split('T')[0];
-
-    /* YTD windows */
-    const startNow   = `${thisYear}-01-01`;
-    const endNow     = fmt(oneWeekAgo);
-
-    const endCmpDate = new Date(oneWeekAgo);      endCmpDate.setFullYear(cmpYear);
-    const startCmp   = `${cmpYear}-01-01`;
-    const endCmp     = fmt(endCmpDate);
-
-    /* helpers */
-    const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
-    const lat =  '32.8752631656';
-    const lon = '-117.236132389';
-
-
-    /* CO₂ */
-    try{
-        const rNow = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=carbon_dioxide&start_date=${startNow}&end_date=${endNow}`);
-        const pNow = await rNow.json();
-        const baseline = 460;
-        const latest = avg(pNow.hourly.carbon_dioxide);
-        drawChart('chartCo2','Mean Atmospheric CO₂ (ppm) (Simulated), YTD',baseline,latest);
-    }catch{showCanvasError('chartCo2', 'Failed to load CO₂ data.');
-}
-
-    /* Temperature */
-    try{
-        const [rCmp,rNow] = await Promise.all([
-            fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startCmp}&end_date=${endCmp}&daily=temperature_2m_mean&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit`),
-            fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startNow}&end_date=${endNow}&daily=temperature_2m_mean&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit`)
-        ]);
-        const pCmp = await rCmp.json(), pNow = await rNow.json();
-        const baseline = avg(pCmp.daily?.temperature_2m_mean || []);
-        const latest   = avg(pNow.daily?.temperature_2m_mean || []);
-        drawChart('chartTempMean','Mean Temp (°F), YTD',baseline,latest);
-    }catch{showCanvasError('chartTempMean', 'Failed to load mean temperature.');}
-
-    try{
-        const [rCmp,rNow] = await Promise.all([
-            fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startCmp}&end_date=${endCmp}&daily=temperature_2m_max&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit`),
-            fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startNow}&end_date=${endNow}&daily=temperature_2m_max&timezone=America%2FLos_Angeles&temperature_unit=fahrenheit`)
-        ]);
-        const pCmp = await rCmp.json(), pNow = await rNow.json();
-        const baseline = Math.max(...(pCmp.daily?.temperature_2m_max || []));
-        const latest   = Math.max(...(pNow.daily?.temperature_2m_max || []));
-        drawChart('chartTempMax','Max Temp (°F), YTD',baseline,latest);
-    }
-    catch{
-        showCanvasError('chartTempMax', 'Failed to load max temperature.');
-    }
-
-    try{
-        const mm = String(oneMonthandWeekAgo.getMonth()+1).padStart(2,'0');       // last month index
-        const mURL = y => `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=monthly_mean&application=web_services&begin_date=${y}${mm}01&end_date=${y}${mm}02&datum=MLLW&station=9410230&time_zone=lst_ldt&units=english&format=json`;
-
-        const [rCmp,rNow] = await Promise.all([ fetch(mURL(cmpYear)), fetch(mURL(thisYear)) ]);
-        const pCmp = await rCmp.json(), pNow = await rNow.json();
-        const baseline = parseFloat(pCmp.data[0].MSL);
-        const latest   = parseFloat(pNow.data[0].MSL);
-        drawChart('chartSea','Sea-Level (ft), Monthly Mean',baseline,latest);
-    }
-    catch{
-        showCanvasError('chartSea', 'Failed to load sea level data.');
-    }
-}
-
-const average = array => array.reduce((a, b) => a + b) / array.length;
-
-document.getElementById('runBtn')
-        .addEventListener('click', fetchMetrics, { once: true });
-
-/* ---------- responsive scale ---------- */
-function scaleSite(){
-    const DESIGN_W = 1728;      // match the CSS numbers above
-    const DESIGN_H = 956;
-
-    const scale = Math.min(
-        window.innerWidth  / DESIGN_W,
-        window.innerHeight / DESIGN_H,
-        1                  // never enlarge, only shrink
-    );
-
-    document.getElementById('scaleRoot')
-            .style.transform = `scale(${scale})`;
-}
-
-scaleSite();                    // initial call
-window.addEventListener('resize', scaleSite);
-
-function showCanvasError(id, message) {
-    const canvas = document.getElementById(id);
-    canvas.style.display = 'block'; // ensure it's visible
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // clear anything already there
-
-    // Style and write the error
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-    ctx.font = '20px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(message, canvas.width / 2, canvas.height / 2);
-}
-
-
-</script>
+        <section class="about" id="about" hidden>
+            <h2>About this project</h2>
+            <p>Created by David Karelin. Temperature compares the same year-to-date days in both years. CO₂ and sea level each use their latest available matched month. The reference year is 2025, or the preceding year for periods ending in 2025 or earlier. Long-term climate trends require many years of observations.</p>
+        </section>
+    </main>
 </body>
 </html>
